@@ -94,7 +94,7 @@ def grid_from_board():
                 row = []
                 for col_idx in range(4):
                     pos = row_idx * 4 + col_idx
-                    idx = board[game_idx, pos].argmax().item()
+                    idx = board[game_idx, pos].to(torch.int64).argmax().item()
                     if idx == 0:
                         value = 0
                     else:
@@ -372,7 +372,8 @@ def gpu_device():
     """Get GPU device (skips test if unavailable)."""
     if not torch.cuda.is_available():
         pytest.skip("CUDA not available")
-    return torch.device("cuda")
+    # Use explicit index to ensure device comparison works correctly
+    return torch.device("cuda:0")
 
 
 # =============================================================================
