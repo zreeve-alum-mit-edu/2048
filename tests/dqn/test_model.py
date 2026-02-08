@@ -6,12 +6,16 @@ import torch
 from algorithms.dqn.model import DQNNetwork
 
 
+# Default input size for one-hot representation (16 * 17 = 272)
+DEFAULT_INPUT_SIZE = 272
+
+
 class TestDQNNetworkArchitecture:
     """Test network architecture correctness."""
 
     def test_default_architecture(self):
         """Test default network creates correct layer sizes."""
-        net = DQNNetwork()
+        net = DQNNetwork(input_size=DEFAULT_INPUT_SIZE)
 
         # Should have 2 hidden layers of 256 + output layer
         linear_layers = [m for m in net.network if isinstance(m, torch.nn.Linear)]
@@ -26,7 +30,7 @@ class TestDQNNetworkArchitecture:
 
     def test_custom_hidden_layers(self):
         """Test custom hidden layer configuration."""
-        net = DQNNetwork(hidden_layers=[128, 64, 32])
+        net = DQNNetwork(input_size=DEFAULT_INPUT_SIZE, hidden_layers=[128, 64, 32])
 
         linear_layers = [m for m in net.network if isinstance(m, torch.nn.Linear)]
         assert len(linear_layers) == 4  # 3 hidden + 1 output
@@ -38,7 +42,7 @@ class TestDQNNetworkArchitecture:
 
     def test_single_hidden_layer(self):
         """Test single hidden layer configuration."""
-        net = DQNNetwork(hidden_layers=[512])
+        net = DQNNetwork(input_size=DEFAULT_INPUT_SIZE, hidden_layers=[512])
 
         linear_layers = [m for m in net.network if isinstance(m, torch.nn.Linear)]
         assert len(linear_layers) == 2
@@ -47,6 +51,14 @@ class TestDQNNetworkArchitecture:
         assert linear_layers[0].out_features == 512
         assert linear_layers[1].in_features == 512
         assert linear_layers[1].out_features == 4
+
+    def test_custom_input_size(self):
+        """Test network accepts different input sizes (DEC-0037)."""
+        # Embedding representation with embed_dim=32: 16 * 32 = 512
+        net = DQNNetwork(input_size=512, hidden_layers=[256, 256])
+
+        linear_layers = [m for m in net.network if isinstance(m, torch.nn.Linear)]
+        assert linear_layers[0].in_features == 512
 
 
 class TestDQNNetworkForward:
@@ -58,7 +70,7 @@ class TestDQNNetworkForward:
 
     @pytest.fixture
     def network(self, device):
-        return DQNNetwork().to(device)
+        return DQNNetwork(input_size=DEFAULT_INPUT_SIZE).to(device)
 
     def test_forward_3d_input(self, network, device):
         """Test forward pass with (N, 16, 17) input."""
@@ -109,7 +121,7 @@ class TestMaskedActionValues:
 
     @pytest.fixture
     def network(self, device):
-        return DQNNetwork().to(device)
+        return DQNNetwork(input_size=DEFAULT_INPUT_SIZE).to(device)
 
     def test_valid_actions_preserved(self, network, device):
         """Test that valid action Q-values are preserved."""

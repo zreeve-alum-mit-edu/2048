@@ -6,6 +6,7 @@ Implements the DQN algorithm with:
 - Mask-based action selection (DEC-0034)
 - Hard target network updates (DEC-0036)
 - Experience replay respecting episode boundaries (DEC-0003)
+- Support for different representations (DEC-0037/Milestone 5)
 """
 
 import copy
@@ -18,21 +19,25 @@ from torch import Tensor
 
 from algorithms.dqn.model import DQNNetwork
 from algorithms.dqn.replay_buffer import ReplayBuffer
+from representations.base import Representation
+from representations.onehot import OneHotRepresentation
 
 
 class DQNAgent:
     """DQN Agent for playing 2048.
 
     Key decisions implemented:
-    - DEC-0033: Uses merge_reward only
+    - DEC-0033: Uses merge_reward only (for basic milestone)
     - DEC-0034: Mask-based action selection (invalid Q-values set to -inf)
     - DEC-0035: Linear epsilon decay over 100k steps
     - DEC-0036: Hard target network update every N steps
+    - DEC-0037: Supports multiple representations via representation parameter
     """
 
     def __init__(
         self,
         device: torch.device,
+        representation: Optional[Representation] = None,
         hidden_layers: list = [256, 256],
         learning_rate: float = 0.0001,
         gamma: float = 0.99,
@@ -48,6 +53,8 @@ class DQNAgent:
 
         Args:
             device: PyTorch device
+            representation: Representation module for state transformation.
+                           If None, uses OneHotRepresentation (backward compatible).
             hidden_layers: Hidden layer sizes for the network
             learning_rate: Adam optimizer learning rate
             gamma: Discount factor
@@ -68,12 +75,24 @@ class DQNAgent:
         self.batch_size = batch_size
         self.buffer_min_size = buffer_min_size
 
-        # Networks
+        # Representation module (DEC-0037)
+        # Default to OneHotRepresentation for backward compatibility
+        if representation is None:
+            self.representation = OneHotRepresentation({}).to(device)
+        else:
+            self.representation = representation.to(device)
+
+        # Get input size from representation
+        input_size = self.representation.output_shape()[0]
+
+        # Networks with dynamic input size
         self.policy_net = DQNNetwork(
+            input_size=input_size,
             hidden_layers=hidden_layers
         ).to(device)
 
         self.target_net = DQNNetwork(
+            input_size=input_size,
             hidden_layers=hidden_layers
         ).to(device)
 
@@ -131,6 +150,10 @@ class DQNAgent:
         """
         batch_size = state.size(0)
 
+        # Transform state through representation (DEC-0037)
+        with torch.no_grad():
+            repr_state = self.representation(state)
+
         if training:
             self.epsilon = self._compute_epsilon()
 
@@ -139,7 +162,7 @@ class DQNAgent:
 
             # Get greedy actions for non-random selections
             with torch.no_grad():
-                q_values = self.policy_net.get_action_values(state, valid_mask)
+                q_values = self.policy_net.get_action_values(repr_state, valid_mask)
                 greedy_actions = q_values.argmax(dim=1)
 
             # Random valid actions for exploration
@@ -156,7 +179,7 @@ class DQNAgent:
         else:
             # Pure greedy action selection
             with torch.no_grad():
-                q_values = self.policy_net.get_action_values(state, valid_mask)
+                q_values = self.policy_net.get_action_values(repr_state, valid_mask)
                 actions = q_values.argmax(dim=1)
 
         return actions
@@ -200,19 +223,20 @@ class DQNAgent:
         states, actions, rewards, next_states, dones, valid_masks = \
             self.replay_buffer.sample(self.batch_size)
 
-        # Convert to float for network
-        states_float = states.float()
-        next_states_float = next_states.float()
+        # Transform states through representation (DEC-0037)
+        repr_states = self.representation(states)
+        with torch.no_grad():
+            repr_next_states = self.representation(next_states)
 
         # Compute current Q values
-        current_q_values = self.policy_net(states_float)
+        current_q_values = self.policy_net(repr_states)
         current_q = current_q_values.gather(1, actions.unsqueeze(1)).squeeze(1)
 
         # Compute target Q values
         with torch.no_grad():
             # Get Q-values from target network with masking
             next_q_values = self.target_net.get_action_values(
-                next_states_float, valid_masks
+                repr_next_states, valid_masks
             )
             # Max Q-value for non-terminal states
             next_q_max = next_q_values.max(dim=1)[0]

@@ -1,8 +1,10 @@
 """
 DQN Network Model.
 
-MLP network that takes flattened one-hot state (N, 16, 17) -> (N, 272)
-and outputs Q-values for each action (N, 4).
+MLP network that takes flattened representation output and outputs
+Q-values for each action (N, 4).
+
+Per DEC-0037: Input size is dynamic based on representation output shape.
 """
 
 from typing import List
@@ -16,14 +18,16 @@ class DQNNetwork(nn.Module):
     """DQN network with MLP architecture.
 
     Architecture:
-    - Input: (N, 272) flattened one-hot state
+    - Input: (N, input_size) flattened representation output
     - Hidden layers: configurable sizes with ReLU activation
     - Output: (N, 4) Q-values for each action
+
+    Per DEC-0037: input_size is dynamic based on representation.
     """
 
     def __init__(
         self,
-        input_size: int = 272,  # 16 positions * 17 values
+        input_size: int,  # Required - from representation.output_shape()[0]
         hidden_layers: List[int] = [256, 256],
         output_size: int = 4,  # 4 actions (up, down, left, right)
         activation: str = "relu"
@@ -31,7 +35,7 @@ class DQNNetwork(nn.Module):
         """Initialize DQN network.
 
         Args:
-            input_size: Size of flattened input (default 272 for 16*17)
+            input_size: Size of flattened input from representation
             hidden_layers: List of hidden layer sizes
             output_size: Number of output actions
             activation: Activation function ('relu' or 'tanh')
@@ -64,15 +68,14 @@ class DQNNetwork(nn.Module):
         """Forward pass through the network.
 
         Args:
-            state: (N, 16, 17) one-hot encoded board states
-                   OR (N, 272) flattened states
+            state: (N, input_size) flattened representation output
+                   OR (N, 16, 17) raw one-hot states (legacy support)
 
         Returns:
             (N, 4) Q-values for each action
         """
-        # Flatten input if needed
+        # Flatten input if 3D (legacy raw state input)
         if state.dim() == 3:
-            # (N, 16, 17) -> (N, 272)
             state = state.view(state.size(0), -1)
 
         # Convert boolean to float if needed
