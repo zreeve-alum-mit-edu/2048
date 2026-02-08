@@ -168,7 +168,15 @@ class DQNAgent:
             # Random valid actions for exploration (vectorized per DEC-0039)
             # Use multinomial sampling with valid_mask as probability distribution
             probs = valid_mask.float()
-            probs = probs / probs.sum(dim=1, keepdim=True)
+            # Guard against all-zero rows (terminal states with no valid actions)
+            # This can happen if select_action is called on terminal states
+            row_sums = probs.sum(dim=1, keepdim=True)
+            no_valid = (row_sums == 0).squeeze(1)
+            if no_valid.any():
+                # Set action 0 as fallback for terminal states (won't be used)
+                probs[no_valid, 0] = 1.0
+                row_sums = probs.sum(dim=1, keepdim=True)
+            probs = probs / row_sums
             random_actions = torch.multinomial(probs, 1).squeeze(1)
 
             # Combine greedy and random actions
