@@ -1,8 +1,12 @@
 """
 Precomputed lookup tables for GPU-native 2048 game operations.
 
-Tables are generated once at module import time (DEC-0028) and cached.
+Tables are generated once at module import time (DEC-0028) directly on GPU.
 They support O(1) lookups for line transitions, valid moves, and score deltas.
+
+CUDA Requirement: This module REQUIRES CUDA to be available. It will fail fast
+at import time if CUDA is not available, per the target hardware decision
+(DEC-0001: Target hardware is NVIDIA GH200).
 
 Table shapes and dtypes (DEC-0029):
 - LINE_TRANSITION: (17, 17, 17, 17, 4, 18) boolean - one-hot encoded output line
@@ -17,6 +21,18 @@ are handled by rotating/transforming the board before lookup.
 import torch
 from torch import Tensor
 from typing import Tuple, List
+
+
+# Fail fast if CUDA is not available (DEC-0001: target hardware is GH200)
+if not torch.cuda.is_available():
+    raise RuntimeError(
+        "CUDA is required but not available. "
+        "This project targets NVIDIA GH200 hardware (DEC-0001). "
+        "Please ensure CUDA is properly installed and a GPU is available."
+    )
+
+# Default device for lookup tables - always CUDA
+_LOOKUP_TABLE_DEVICE = torch.device("cuda")
 
 
 def _compute_line_left(line: List[int]) -> Tuple[List[int], int]:
@@ -68,22 +84,25 @@ def _line_changed(original: List[int], result: List[int]) -> bool:
     return original != result
 
 
-def _generate_tables() -> Tuple[Tensor, Tensor, Tensor]:
-    """Generate all lookup tables.
+def _generate_tables(device: torch.device) -> Tuple[Tensor, Tensor, Tensor]:
+    """Generate all lookup tables directly on the specified device.
+
+    Args:
+        device: PyTorch device to generate tables on (should be CUDA)
 
     Returns:
-        (line_transition, valid_move, score_delta) tensors
+        (line_transition, valid_move, score_delta) tensors on the specified device
     """
     # Line transition: (17, 17, 17, 17, 4, 18) boolean one-hot
     # For each input line (4 tiles, each 0-16), output is one-hot for each position
     # Output can be 0-17 (merging two 16s produces 17)
-    line_transition = torch.zeros(17, 17, 17, 17, 4, 18, dtype=torch.bool)
+    line_transition = torch.zeros(17, 17, 17, 17, 4, 18, dtype=torch.bool, device=device)
 
     # Valid move: (17, 17, 17, 17) boolean
-    valid_move = torch.zeros(17, 17, 17, 17, dtype=torch.bool)
+    valid_move = torch.zeros(17, 17, 17, 17, dtype=torch.bool, device=device)
 
     # Score delta: (17, 17, 17, 17) int32
-    score_delta = torch.zeros(17, 17, 17, 17, dtype=torch.int32)
+    score_delta = torch.zeros(17, 17, 17, 17, dtype=torch.int32, device=device)
 
     # Iterate all possible line configurations
     for t0 in range(17):
@@ -106,14 +125,18 @@ def _generate_tables() -> Tuple[Tensor, Tensor, Tensor]:
     return line_transition, valid_move, score_delta
 
 
-# Generate tables at import time (DEC-0028)
-LINE_TRANSITION, VALID_MOVE, SCORE_DELTA = _generate_tables()
+# Generate tables at import time directly on GPU (DEC-0028)
+LINE_TRANSITION, VALID_MOVE, SCORE_DELTA = _generate_tables(_LOOKUP_TABLE_DEVICE)
 
 
 def get_tables_on_device(device: torch.device) -> Tuple[Tensor, Tensor, Tensor]:
     """Get lookup tables on specified device.
 
-    Tables are lazily moved to device and cached.
+    Tables are generated on CUDA at import time and returned directly for CUDA
+    devices. For other devices (e.g., CPU for testing), tables are moved and cached.
+
+    Note: Since target hardware is GH200 (DEC-0001), the primary path returns
+    the pre-generated CUDA tables directly without any device transfer.
 
     Args:
         device: Target PyTorch device
@@ -121,8 +144,13 @@ def get_tables_on_device(device: torch.device) -> Tuple[Tensor, Tensor, Tensor]:
     Returns:
         (line_transition, valid_move, score_delta) on device
     """
-    global _device_cache
+    # Fast path: if requesting CUDA (same device as tables), return directly
+    if device.type == "cuda":
+        # Handle cuda vs cuda:0 vs cuda:N - all return the same tables
+        # since we only support single GPU operation
+        return LINE_TRANSITION, VALID_MOVE, SCORE_DELTA
 
+    # Slow path: for non-CUDA devices (e.g., CPU for testing), cache transfers
     if not hasattr(get_tables_on_device, '_cache'):
         get_tables_on_device._cache = {}
 

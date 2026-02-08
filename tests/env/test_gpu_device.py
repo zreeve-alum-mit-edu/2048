@@ -5,6 +5,7 @@ Tests verifying all tensors are on the correct device:
 - All output tensors on specified device
 - No accidental CPU tensors
 - State, rewards, done flags, masks all on GPU
+- Lookup tables generated directly on GPU
 
 These tests ensure proper GPU utilization.
 """
@@ -13,6 +14,7 @@ import pytest
 import torch
 
 from game.env import GameEnv, InvalidMoveError
+from game import lookup_tables
 
 
 class TestTensorDevicePlacement:
@@ -293,3 +295,58 @@ class TestSpecificGPUDevice:
         state = env.reset()
 
         assert state.device == device
+
+
+class TestLookupTablesOnGPU:
+    """Tests verifying lookup tables are generated directly on GPU.
+
+    These tests ensure the fix for slow first run (CPU->GPU transfer) is working.
+    Per DEC-0001, target hardware is GH200, so tables should be on CUDA.
+    """
+
+    def test_line_transition_on_cuda(self):
+        """LINE_TRANSITION table is on CUDA device (not CPU)."""
+        assert lookup_tables.LINE_TRANSITION.device.type == "cuda", \
+            f"LINE_TRANSITION on wrong device: {lookup_tables.LINE_TRANSITION.device}"
+
+    def test_valid_move_on_cuda(self):
+        """VALID_MOVE table is on CUDA device (not CPU)."""
+        assert lookup_tables.VALID_MOVE.device.type == "cuda", \
+            f"VALID_MOVE on wrong device: {lookup_tables.VALID_MOVE.device}"
+
+    def test_score_delta_on_cuda(self):
+        """SCORE_DELTA table is on CUDA device (not CPU)."""
+        assert lookup_tables.SCORE_DELTA.device.type == "cuda", \
+            f"SCORE_DELTA on wrong device: {lookup_tables.SCORE_DELTA.device}"
+
+    def test_get_tables_returns_cuda_for_cuda_device(self, gpu_device):
+        """get_tables_on_device returns CUDA tables for CUDA device."""
+        line_trans, valid, score = lookup_tables.get_tables_on_device(gpu_device)
+
+        assert line_trans.device.type == "cuda"
+        assert valid.device.type == "cuda"
+        assert score.device.type == "cuda"
+
+    def test_get_tables_returns_same_objects_for_cuda(self, gpu_device):
+        """get_tables_on_device returns same table objects (no copy) for CUDA."""
+        line_trans, valid, score = lookup_tables.get_tables_on_device(gpu_device)
+
+        # Should be the exact same objects (not copies)
+        assert line_trans is lookup_tables.LINE_TRANSITION
+        assert valid is lookup_tables.VALID_MOVE
+        assert score is lookup_tables.SCORE_DELTA
+
+    def test_lookup_table_device_constant_is_cuda(self):
+        """Internal _LOOKUP_TABLE_DEVICE constant is CUDA."""
+        assert lookup_tables._LOOKUP_TABLE_DEVICE.type == "cuda"
+
+    def test_all_lookup_tables_same_device(self):
+        """All three lookup tables are on the same device."""
+        devices = {
+            lookup_tables.LINE_TRANSITION.device,
+            lookup_tables.VALID_MOVE.device,
+            lookup_tables.SCORE_DELTA.device,
+        }
+        # All should be on the same CUDA device
+        assert len(devices) == 1, f"Tables on different devices: {devices}"
+        assert list(devices)[0].type == "cuda"
