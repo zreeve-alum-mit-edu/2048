@@ -106,12 +106,11 @@ def create_objective(config: StudyConfig) -> Callable[[Trial], float]:
                 # Track scores
                 total_reward += reward
 
-                # Handle episode termination
+                # Handle episode termination (vectorized per DEC-0039)
                 if result.done.any():
-                    for i in range(env.n_games):
-                        if result.done[i]:
-                            epoch_scores.append(total_reward[i].item())
-                            total_reward[i] = 0.0
+                    done_scores = total_reward[result.done]
+                    epoch_scores.extend(done_scores.tolist())
+                    total_reward = torch.where(result.done, torch.zeros_like(total_reward), total_reward)
 
                 # Train step
                 agent.train_step()
@@ -181,12 +180,14 @@ def _quick_eval(
                 result.merge_reward.float()
             )
 
-            # Track newly completed games
+            # Track newly completed games (vectorized per DEC-0039)
             newly_done = result.done & ~done_mask
-            for i in range(batch_size):
-                if newly_done[i] and games_completed < num_games:
-                    scores.append(episode_scores[i].item())
-                    games_completed += 1
+            if newly_done.any():
+                new_scores = episode_scores[newly_done]
+                remaining_slots = num_games - games_completed
+                scores_to_add = new_scores[:remaining_slots].tolist()
+                scores.extend(scores_to_add)
+                games_completed += len(scores_to_add)
 
             done_mask = done_mask | result.done
 

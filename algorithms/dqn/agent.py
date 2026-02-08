@@ -165,14 +165,11 @@ class DQNAgent:
                 q_values = self.policy_net.get_action_values(repr_state, valid_mask)
                 greedy_actions = q_values.argmax(dim=1)
 
-            # Random valid actions for exploration
-            # For each game, sample from valid actions only
-            random_actions = torch.zeros(batch_size, dtype=torch.long, device=self.device)
-            for i in range(batch_size):
-                valid_indices = valid_mask[i].nonzero(as_tuple=True)[0]
-                if len(valid_indices) > 0:
-                    rand_idx = torch.randint(len(valid_indices), (1,), device=self.device)
-                    random_actions[i] = valid_indices[rand_idx]
+            # Random valid actions for exploration (vectorized per DEC-0039)
+            # Use multinomial sampling with valid_mask as probability distribution
+            probs = valid_mask.float()
+            probs = probs / probs.sum(dim=1, keepdim=True)
+            random_actions = torch.multinomial(probs, 1).squeeze(1)
 
             # Combine greedy and random actions
             actions = torch.where(random_mask, random_actions, greedy_actions)

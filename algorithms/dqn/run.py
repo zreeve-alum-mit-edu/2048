@@ -154,14 +154,14 @@ def train(
         # Track episode scores
         episode_scores += result.merge_reward.float()
 
-        # Handle episode termination
+        # Handle episode termination (vectorized per DEC-0039)
         if result.done.any():
-            for i in range(env.n_games):
-                if result.done[i]:
-                    completed_episodes += 1
-                    total_episode_score += episode_scores[i].item()
-                    metrics["episode_scores"].append(episode_scores[i].item())
-                    episode_scores[i] = 0.0
+            done_scores = episode_scores[result.done]
+            num_done = done_scores.numel()
+            completed_episodes += num_done
+            total_episode_score += done_scores.sum().item()
+            metrics["episode_scores"].extend(done_scores.tolist())
+            episode_scores = torch.where(result.done, torch.zeros_like(episode_scores), episode_scores)
 
         # Train
         train_metrics = agent.train_step()
@@ -290,12 +290,14 @@ def evaluate(
                 result.merge_reward.float()
             )
 
-            # Track newly completed games
+            # Track newly completed games (vectorized per DEC-0039)
             newly_done = result.done & ~done_mask
-            for i in range(batch_size):
-                if newly_done[i] and games_completed < num_games:
-                    scores.append(int(episode_scores[i].item()))
-                    games_completed += 1
+            if newly_done.any():
+                new_scores = episode_scores[newly_done]
+                remaining_slots = num_games - games_completed
+                scores_to_add = new_scores[:remaining_slots].int().tolist()
+                scores.extend(scores_to_add)
+                games_completed += len(scores_to_add)
 
             done_mask = done_mask | result.done
 

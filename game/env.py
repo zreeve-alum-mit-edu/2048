@@ -71,14 +71,19 @@ def _default_spawn_fn(empty_mask: Tensor) -> Tuple[Tensor, Tensor]:
     n_games = empty_mask.shape[0]
     device = empty_mask.device
 
-    # Find empty positions and choose one randomly
-    positions = torch.zeros(n_games, dtype=torch.long, device=device)
-
-    for i in range(n_games):
-        empty_indices = empty_mask[i].nonzero(as_tuple=True)[0]
-        if len(empty_indices) > 0:
-            rand_idx = torch.randint(len(empty_indices), (1,), device=device)
-            positions[i] = empty_indices[rand_idx]
+    # Vectorized random position selection (per DEC-0039)
+    # Use multinomial sampling with empty_mask as probability distribution
+    probs = empty_mask.float()
+    # Handle edge case where no cells are empty (full board)
+    # Set position 0 to non-zero for full boards to avoid multinomial failure
+    # This won't actually be used since spawn is only called when there are empty cells
+    row_sums = probs.sum(dim=1, keepdim=True)
+    no_empty = (row_sums == 0).squeeze(1)
+    if no_empty.any():
+        probs[no_empty, 0] = 1.0
+        row_sums = probs.sum(dim=1, keepdim=True)
+    probs = probs / row_sums
+    positions = torch.multinomial(probs, 1).squeeze(1)
 
     # 90% chance of 2 (log2=1), 10% chance of 4 (log2=2)
     rand_vals = torch.rand(n_games, device=device)

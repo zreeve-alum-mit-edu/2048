@@ -101,18 +101,21 @@ class ReplayBuffer:
         """
         batch_size = state.size(0)
 
-        for i in range(batch_size):
-            idx = self.position
+        # Vectorized batch insertion (per DEC-0039)
+        # Calculate indices for the batch
+        indices = (torch.arange(batch_size, device=self.device) + self.position) % self.capacity
 
-            self.states[idx] = state[i]
-            self.actions[idx] = action[i]
-            self.rewards[idx] = reward[i]
-            self.next_states[idx] = next_state[i]
-            self.dones[idx] = done[i]
-            self.valid_masks[idx] = valid_mask[i]
+        # Batch write all transitions (cast to correct dtypes for compatibility)
+        self.states[indices] = state.to(torch.bool)
+        self.actions[indices] = action
+        self.rewards[indices] = reward
+        self.next_states[indices] = next_state.to(torch.bool)
+        self.dones[indices] = done
+        self.valid_masks[indices] = valid_mask
 
-            self.position = (self.position + 1) % self.capacity
-            self.size = min(self.size + 1, self.capacity)
+        # Update position and size
+        self.position = (self.position + batch_size) % self.capacity
+        self.size = min(self.size + batch_size, self.capacity)
 
     def sample(self, batch_size: int) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
         """Sample a random batch of transitions.
