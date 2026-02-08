@@ -1,0 +1,2 @@
+# Directory for Optuna SQLite storage
+# Per DEC-0010: Optuna uses SQLite for study persistence
