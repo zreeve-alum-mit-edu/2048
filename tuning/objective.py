@@ -93,6 +93,18 @@ def create_objective(config: StudyConfig) -> Callable[[Trial], float]:
                 else:  # spawn
                     reward = result.spawn_reward.float()
 
+                # Bug fix: valid_mask from StepResult is for terminal next_state, not reset_states
+                # For done games, we need to recompute valid_mask for the reset_states
+                if result.done.any():
+                    reset_valid_mask = compute_valid_mask(result.reset_states, device)
+                    next_valid_mask = torch.where(
+                        result.done.unsqueeze(-1),
+                        reset_valid_mask,
+                        result.valid_mask
+                    )
+                else:
+                    next_valid_mask = result.valid_mask
+
                 # Store transition
                 agent.store_transition(
                     state=state,
@@ -100,7 +112,7 @@ def create_objective(config: StudyConfig) -> Callable[[Trial], float]:
                     reward=reward,
                     next_state=result.next_state,
                     done=result.done,
-                    valid_mask=result.valid_mask,
+                    valid_mask=next_valid_mask,
                 )
 
                 # Track scores
