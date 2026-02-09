@@ -107,11 +107,11 @@ class ReplayBuffer:
 
         # Batch write all transitions (cast to correct dtypes for compatibility)
         self.states[indices] = state.to(torch.bool)
-        self.actions[indices] = action
-        self.rewards[indices] = reward
+        self.actions[indices] = action.long()
+        self.rewards[indices] = reward.float()
         self.next_states[indices] = next_state.to(torch.bool)
-        self.dones[indices] = done
-        self.valid_masks[indices] = valid_mask
+        self.dones[indices] = done.bool()
+        self.valid_masks[indices] = valid_mask.bool()
 
         # Update position and size
         self.position = (self.position + batch_size) % self.capacity
