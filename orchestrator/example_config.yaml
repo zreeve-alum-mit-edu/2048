@@ -1,0 +1,50 @@
+# Example Orchestrator Configuration
+#
+# This file demonstrates the configuration format for the Training Orchestrator.
+# Use with: python -m orchestrator run orchestrator/example_config.yaml
+
+# Orchestrator settings
+orchestrator:
+  # Number of experiments to run in parallel
+  # Set to 1 for sequential execution (recommended for GPU workloads)
+  parallel_runs: 1
+
+  # Directory to store all results
+  results_dir: results
+
+  # Report format: markdown, json, or both
+  report_format: both
+
+# List of experiments to run
+experiments:
+  # Each experiment is an (Algorithm, Representation, Reward) combination
+
+  - name: dqn_onehot_merge
+    algorithm: dqn
+    representation: onehot
+    reward_type: merge
+    training_steps: 100000
+    eval_games: 100
+    n_envs: 32
+    # Optional: override algorithm hyperparameters
+    # hyperparameters:
+    #   learning_rate: 0.0001
+    #   batch_size: 64
+
+  # Example with different representation
+  # - name: dqn_embedding_merge
+  #   algorithm: dqn
+  #   representation: embedding
+  #   reward_type: merge
+  #   training_steps: 100000
+  #   eval_games: 100
+  #   n_envs: 32
+
+  # Example with spawn reward
+  # - name: dqn_onehot_spawn
+  #   algorithm: dqn
+  #   representation: onehot
+  #   reward_type: spawn
+  #   training_steps: 100000
+  #   eval_games: 100
+  #   n_envs: 32
