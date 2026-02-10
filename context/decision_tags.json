@@ -1,0 +1,46 @@
+{
+  "framework": {
+    "description": "ML framework and library choices",
+    "color": "#3498db"
+  },
+  "hardware": {
+    "description": "Hardware requirements and constraints",
+    "color": "#e74c3c"
+  },
+  "interface": {
+    "description": "API contracts, method signatures, data formats",
+    "color": "#9b59b6"
+  },
+  "game-rules": {
+    "description": "2048 game mechanics and invariants",
+    "color": "#2ecc71"
+  },
+  "testing": {
+    "description": "Test strategy, coverage, and methodology",
+    "color": "#f39c12"
+  },
+  "architecture": {
+    "description": "Module structure, file organization, code patterns",
+    "color": "#1abc9c"
+  },
+  "algorithm": {
+    "description": "RL algorithm choices and configurations",
+    "color": "#e67e22"
+  },
+  "milestone": {
+    "description": "Project milestone definitions and success criteria",
+    "color": "#34495e"
+  },
+  "process": {
+    "description": "Workflow rules, PR strategy, environment setup",
+    "color": "#95a5a6"
+  },
+  "performance": {
+    "description": "Performance requirements, optimization constraints",
+    "color": "#d35400"
+  },
+  "governance": {
+    "description": "Decision logging, documentation, and meta-rules",
+    "color": "#8e44ad"
+  }
+}

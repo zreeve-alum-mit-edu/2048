@@ -2,7 +2,8 @@
 
 This repo uses an append-only decision log as the persistent “context graph”:
 
-- File: `context/decisions.jsonl`
+- Active File: `context/decisions_active.jsonl`
+- Graveyard File: `context/decisions_graveyard.jsonl` (archived/deleted decisions)
 - Format: JSON Lines (one JSON object per line)
 - Rule: NEVER edit old lines. Only append new lines.
 
@@ -19,7 +20,7 @@ Any agent (or the main assistant) may log decisions, but MUST do it via the Pyth
 
 - Script: `scripts/decision_log.py`
 
-No one should hand-edit `context/decisions.jsonl`.
+No one should hand-edit `context/decisions_active.jsonl` or `context/decisions_graveyard.jsonl`.
 
 ## Required fields (top-level)
 Each entry MUST include:
@@ -75,7 +76,7 @@ Agents should read the last ~50 lines when looking for recent decisions, and sea
 Decision logging is a HARD STOP invariant.
 
 If a qualifying decision is made or proposed and the decision cannot be
-successfully appended to `context/decisions.jsonl` via
+successfully appended to `context/decisions_active.jsonl` via
 `python3 scripts/decision_log.py`, the agent MUST:
 
 1. STOP immediately
