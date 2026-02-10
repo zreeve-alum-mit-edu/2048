@@ -7,10 +7,28 @@ import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Any, Dict, List, Optional, Tuple
+import time
 
 ACTIVE_PATH = os.path.join("context", "decisions_active.jsonl")
 GRAVEYARD_PATH = os.path.join("context", "decisions_graveyard.jsonl")
 ID_RE = re.compile(r"^DEC-(\d{4,})$")
+OBS_LOG_PATH = os.path.join("context", "observability.jsonl")
+
+def _append_observability(event: Dict[str, Any]) -> None:
+    os.makedirs(os.path.dirname(OBS_LOG_PATH), exist_ok=True)
+    with open(OBS_LOG_PATH, "a", encoding="utf-8") as f:
+        f.write(json.dumps(event, ensure_ascii=False) + "\n")
+
+def _caller_hint() -> Dict[str, Any]:
+    # Best-effort: depends on what Claude Code exports into the environment.
+    keys = [
+        "CLAUDE_CODE_ENTRYPOINT",
+        "CLAUDE_AGENT",
+        "CLAUDE_SUBAGENT",
+        "CLAUDE_ROLE",
+    ]
+    out = {k: os.environ.get(k) for k in keys if os.environ.get(k)}
+    return out or {"caller": "unknown"}
 
 
 def _now_iso_chicago() -> str:
@@ -390,6 +408,10 @@ def tag_assign(args: argparse.Namespace) -> int:
     return 0
 
 def main() -> int:
+    start = time.monotonic()
+    ts = _now_iso_chicago()
+
+    # Parse first so we know which subcommand it is.
     p = argparse.ArgumentParser(prog="decision_log")
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -469,6 +491,42 @@ def main() -> int:
 
 
     args = p.parse_args()
+    
+    # Log the call (safe, concise subset)
+    call_event: Dict[str, Any] = {
+        "ts": ts,
+        "event_type": "decision_log_call",
+        "cmd": args.cmd,
+        "argv": sys.argv[1:],  # full argv for forensics; remove if too noisy
+        **_caller_hint(),
+    }
+
+    # Add some common fields when present (best-effort)
+    for k in ["actor", "status", "workflow", "step", "id", "tag"]:
+        if hasattr(args, k):
+            call_event[k] = getattr(args, k)
+
+    rc = 0
+    err: Optional[str] = None
+    try:
+        rc = args.func(args)
+        return rc
+    except Exception as ex:
+        rc = 2
+        err = f"{type(ex).__name__}: {ex}"
+        raise
+    finally:
+        end_ts = _now_iso_chicago()
+        dur_ms = int((time.monotonic() - start) * 1000)
+
+        call_event["end_ts"] = end_ts
+        call_event["duration_ms"] = dur_ms
+        call_event["rc"] = rc
+        if err:
+            call_event["error"] = err
+
+        _append_observability(call_event)
+        
     return args.func(args)
 
 if __name__ == "__main__":

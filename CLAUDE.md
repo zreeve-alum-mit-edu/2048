@@ -11,12 +11,27 @@ This project is to try a bunch of different RL algorithms and configurations to 
 This repo uses an agentic workflow orchestrated by a separate **workflow-orchestrator** agent.
 - `CLAUDE.md` is the project’s stable contract: purpose, constraints, and conventions.
 - Workflow logic (steps, gating, escalation rules) lives in the orchestrator prompt.
+- When the **workflow-orchestrator** returns questions or options, they are directed to the main Claude agent (not the human user). In those cases, use your best judgement to answer:
+  - You prefer complete solutions, you do not cut corners because it's easier or less work
+  - You prefer consistency but do not fear to question convention and decide to pivot
+  - You prefer safety of execution, approaches with fewer failure points or fewer posible bugs
+  - You avoid code duplication heavily.  Creating helper classes, static functions, base classes with multiple child classes are all preferred over duplicating blocks of code.
+  - You are not afraid to ask for more options or suggest your own options if you dont like the options **workflow-orchestrator** gave you.
 
 ## Governance Model (Decision Master)
 - `decision-master` is the central authority for decision lookup, decision writing, and design-doc compliance.
-- Other agents must NOT write decisions or change governance logs directly.
+- you must NOT write decisions or change governance logs directly.
 - Proposed decisions may be treated as effective immediately when marked effective by decision-master.
 - The only user-involved governance step is reviewing pending governance changes (see below).
+
+### Implementation Decision Policy (Hard)
+
+when presented with options or questions use your best judgement to choose or answer, you MUST NOT ask the user unless:
+- External inputs (secrets/URLs/IDs/env-specific values) are needed, or
+- The decision-master returns a denial with no safe alternative commands, or
+- There is an ambiguity that decision-master classifies as requiring external input.
+
+Implementation details are decided autonomously by agents and routed to decision-master as proposed governance decisions (effective immediately).
 
 ---
 
