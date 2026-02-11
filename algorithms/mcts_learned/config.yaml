@@ -1,0 +1,36 @@
+# MCTS+Learned Configuration
+# Milestone 25: Monte Carlo Tree Search with learned value/policy
+# Per DEC-0020: one-hot representation, merge_reward, no tuning
+
+network:
+  hidden_layers: [256, 256]
+
+mcts:
+  num_simulations: 100
+  c_puct: 1.5
+  dirichlet_alpha: 0.25
+  exploration_fraction: 0.25
+  temperature: 1.0
+  temperature_drop_step: 50000
+
+training:
+  total_steps: 500000
+  learning_rate: 0.001
+  gamma: 0.99
+  batch_size: 64
+  games_per_batch: 16
+  value_loss_weight: 1.0
+  policy_loss_weight: 1.0
+
+replay_buffer:
+  capacity: 100000
+  min_size: 1000
+
+logging:
+  log_frequency: 1000
+  eval_frequency: 10000
+  eval_games: 100
+
+checkpoint:
+  save_frequency: 50000
+  save_dir: checkpoints/mcts_learned/
