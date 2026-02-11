@@ -1,0 +1,42 @@
+# SARSA(lambda) Algorithm Configuration with Eligibility Traces
+# Milestone 21: SARSA(lambda) with one-hot representation and merge_reward
+#
+# SARSA(lambda) uses eligibility traces for multi-step credit assignment.
+# Lambda controls the trace decay (0=TD(0), 1=Monte Carlo).
+
+# Training parameters
+training:
+  total_steps: 100000           # Total training steps
+  learning_rate: 0.0005         # Learning rate (alpha)
+  gamma: 0.99                   # Discount factor
+
+# SARSA(lambda)-specific parameters
+sarsa_lambda:
+  lambda: 0.9                   # Trace decay (0=TD(0), 1=MC)
+  replacing_traces: true        # Use replacing traces (vs accumulating)
+
+# Epsilon schedule (per DEC-0035 pattern)
+epsilon:
+  start: 1.0                    # Initial epsilon
+  end: 0.01                     # Final epsilon
+  decay_steps: 100000           # Steps to decay from start to end
+
+# Network architecture
+network:
+  hidden_layers: [256, 256]     # Hidden layer sizes
+  activation: relu              # Activation function
+
+# Environment
+env:
+  n_games: 32                   # Number of parallel games
+
+# Checkpointing
+checkpoint:
+  save_frequency: 10000         # Save checkpoint every N steps
+  save_dir: checkpoints/sarsa_lambda  # Directory for checkpoints
+
+# Logging
+logging:
+  log_frequency: 1000           # Log metrics every N steps
+  eval_frequency: 10000         # Evaluate every N steps
+  eval_games: 100               # Number of games for evaluation
