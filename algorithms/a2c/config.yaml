@@ -1,0 +1,34 @@
+# A2C (Advantage Actor-Critic) Algorithm Configuration
+# Milestone 8: A2C with one-hot representation and merge_reward
+#
+# A2C uses an actor (policy) and critic (value function) to reduce variance
+# compared to REINFORCE. Uses n-step returns for advantage estimation.
+
+# Training parameters
+training:
+  total_steps: 100000           # Total training steps
+  learning_rate: 0.0007         # Adam learning rate
+  gamma: 0.99                   # Discount factor
+  n_steps: 5                    # Steps for n-step returns
+  value_loss_coef: 0.5          # Coefficient for value loss
+  entropy_coef: 0.01            # Coefficient for entropy bonus
+
+# Network architecture
+network:
+  hidden_layers: [256, 256]     # Hidden layer sizes (shared trunk)
+  activation: relu              # Activation function
+
+# Environment
+env:
+  n_games: 32                   # Number of parallel games
+
+# Checkpointing
+checkpoint:
+  save_frequency: 10000         # Save checkpoint every N steps
+  save_dir: checkpoints/a2c     # Directory for checkpoints
+
+# Logging
+logging:
+  log_frequency: 1000           # Log metrics every N steps
+  eval_frequency: 10000         # Evaluate every N steps
+  eval_games: 100               # Number of games for evaluation
