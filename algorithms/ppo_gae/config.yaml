@@ -1,0 +1,30 @@
+# PPO+GAE Configuration
+# Milestone 10: Basic PPO with Generalized Advantage Estimation
+# Per DEC-0020: one-hot representation, merge_reward, no tuning
+
+network:
+  hidden_layers: [256, 256]
+
+training:
+  total_steps: 500000
+  learning_rate: 0.0003
+  gamma: 0.99
+  value_loss_coef: 0.5
+  entropy_coef: 0.01
+
+ppo:
+  # PPO-specific parameters
+  clip_ratio: 0.2           # Epsilon for clipping
+  gae_lambda: 0.95          # GAE lambda (0=TD(0), 1=MC)
+  n_steps: 128              # Steps to collect before update
+  n_epochs: 4               # Epochs per batch of data
+  n_minibatches: 4          # Minibatches per epoch
+
+logging:
+  log_frequency: 1000       # Steps between logs
+  eval_frequency: 10000     # Steps between evaluations
+  eval_games: 100           # Games per evaluation
+
+checkpoint:
+  save_frequency: 50000     # Steps between checkpoints
+  save_dir: checkpoints/ppo_gae/

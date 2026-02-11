@@ -1,0 +1,37 @@
+# n-step DQN Configuration
+# Milestone 14: Multi-step returns
+# Per DEC-0020: one-hot representation, merge_reward, no tuning
+
+network:
+  hidden_layers: [256, 256]
+
+training:
+  total_steps: 500000
+  learning_rate: 0.0001
+  gamma: 0.99
+  batch_size: 64
+
+epsilon:
+  start: 1.0
+  end: 0.01
+  decay_steps: 100000
+
+target_network:
+  update_frequency: 1000
+
+replay_buffer:
+  capacity: 100000
+  min_size: 1000
+
+# n-step specific
+nstep:
+  n_steps: 3              # Number of steps for multi-step returns
+
+logging:
+  log_frequency: 1000
+  eval_frequency: 10000
+  eval_games: 100
+
+checkpoint:
+  save_frequency: 50000
+  save_dir: checkpoints/nstep_dqn/
