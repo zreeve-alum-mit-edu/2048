@@ -1,0 +1,47 @@
+# Double DQN Algorithm Configuration
+# Milestone 9: Double DQN with one-hot representation and merge_reward
+#
+# Key difference from DQN: Uses policy network to SELECT action,
+# target network to EVALUATE, reducing overestimation bias.
+
+# Training parameters
+training:
+  total_steps: 100000           # Total training steps
+  batch_size: 64                # Batch size for learning
+  learning_rate: 0.0001         # Adam learning rate
+  gamma: 0.99                   # Discount factor
+
+# Epsilon schedule (per DEC-0035 pattern)
+epsilon:
+  start: 1.0                    # Initial epsilon
+  end: 0.01                     # Final epsilon
+  decay_steps: 100000           # Steps to decay from start to end
+
+# Target network (per DEC-0036 pattern)
+target_network:
+  update_frequency: 1000        # Steps between target network updates
+
+# Replay buffer (DEC-0003: respects episode boundaries)
+replay_buffer:
+  capacity: 100000              # Maximum number of transitions
+  min_size: 1000                # Minimum size before training starts
+
+# Network architecture
+network:
+  hidden_layers: [256, 256]     # Hidden layer sizes
+  activation: relu              # Activation function
+
+# Environment
+env:
+  n_games: 32                   # Number of parallel games
+
+# Checkpointing
+checkpoint:
+  save_frequency: 10000         # Save checkpoint every N steps
+  save_dir: checkpoints/double_dqn  # Directory for checkpoints
+
+# Logging
+logging:
+  log_frequency: 1000           # Log metrics every N steps
+  eval_frequency: 10000         # Evaluate every N steps
+  eval_games: 100               # Number of games for evaluation
