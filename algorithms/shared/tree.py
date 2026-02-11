@@ -151,10 +151,21 @@ class TreeNode:
             Selected action
         """
         actions = list(self.children.keys())
+
+        # Handle edge case: no children
+        if len(actions) == 0:
+            # Return first valid action if no tree was built
+            return 0
+
         visit_counts = torch.tensor(
             [self.children[a].visit_count for a in actions],
             dtype=torch.float32
         )
+
+        # Handle edge case: all zero visit counts
+        if visit_counts.sum() == 0:
+            # Return first action
+            return actions[0]
 
         if temperature == 0:
             # Deterministic: pick highest visit count
@@ -165,7 +176,12 @@ class TreeNode:
             if temperature != 1.0:
                 visit_counts = visit_counts ** (1.0 / temperature)
 
-            probs = visit_counts / visit_counts.sum()
+            total = visit_counts.sum()
+            if total == 0:
+                # Uniform if all counts are zero after power
+                probs = torch.ones_like(visit_counts) / len(visit_counts)
+            else:
+                probs = visit_counts / total
             action_idx = torch.multinomial(probs, 1).item()
             return actions[action_idx]
 
