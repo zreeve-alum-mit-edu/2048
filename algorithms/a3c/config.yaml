@@ -1,0 +1,40 @@
+# A3C (Asynchronous Advantage Actor-Critic) Algorithm Configuration
+# Milestone 16: A3C with one-hot representation and merge_reward
+#
+# A3C extends A2C with multiple async workers. This implementation
+# simulates async behavior with vectorized environments while capturing
+# the gradient accumulation pattern.
+
+# Training parameters
+training:
+  total_steps: 100000           # Total training steps
+  learning_rate: 0.0007         # Adam learning rate
+  gamma: 0.99                   # Discount factor
+  n_steps: 5                    # Steps for n-step returns
+  value_loss_coef: 0.5          # Coefficient for value loss
+  entropy_coef: 0.01            # Coefficient for entropy bonus
+
+# A3C-specific parameters
+a3c:
+  num_workers: 4                # Number of simulated async workers
+  max_grad_norm: 40.0           # Maximum gradient norm for clipping
+
+# Network architecture
+network:
+  hidden_layers: [256, 256]     # Hidden layer sizes (shared trunk)
+  activation: relu              # Activation function
+
+# Environment
+env:
+  n_games: 32                   # Number of parallel games (should be divisible by num_workers)
+
+# Checkpointing
+checkpoint:
+  save_frequency: 10000         # Save checkpoint every N steps
+  save_dir: checkpoints/a3c     # Directory for checkpoints
+
+# Logging
+logging:
+  log_frequency: 1000           # Log metrics every N steps
+  eval_frequency: 10000         # Evaluate every N steps
+  eval_games: 100               # Number of games for evaluation

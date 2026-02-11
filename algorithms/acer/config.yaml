@@ -1,0 +1,42 @@
+# ACER (Actor-Critic with Experience Replay) Algorithm Configuration
+# Milestone 17: ACER with one-hot representation and merge_reward
+#
+# ACER combines on-policy actor-critic with off-policy experience replay
+# using importance sampling correction (Retrace) for sample efficiency.
+
+# Training parameters
+training:
+  total_steps: 100000           # Total training steps
+  learning_rate: 0.0007         # Adam learning rate
+  gamma: 0.99                   # Discount factor
+  n_steps: 5                    # Steps per trajectory
+  value_loss_coef: 0.5          # Coefficient for Q-value loss
+  entropy_coef: 0.01            # Coefficient for entropy bonus
+
+# ACER-specific parameters
+acer:
+  c: 10.0                       # Importance weight truncation constant
+  replay_ratio: 4               # Off-policy updates per on-policy update
+  buffer_capacity: 5000         # Replay buffer capacity (trajectories)
+  buffer_min_size: 100          # Minimum trajectories before replay
+  batch_size: 16                # Batch size for replay updates
+
+# Network architecture
+network:
+  hidden_layers: [256, 256]     # Hidden layer sizes (shared trunk)
+  activation: relu              # Activation function
+
+# Environment
+env:
+  n_games: 32                   # Number of parallel games
+
+# Checkpointing
+checkpoint:
+  save_frequency: 10000         # Save checkpoint every N steps
+  save_dir: checkpoints/acer    # Directory for checkpoints
+
+# Logging
+logging:
+  log_frequency: 1000           # Log metrics every N steps
+  eval_frequency: 10000         # Evaluate every N steps
+  eval_games: 100               # Number of games for evaluation

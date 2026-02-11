@@ -1,0 +1,40 @@
+# IMPALA (Importance Weighted Actor-Learner Architecture) Configuration
+# Milestone 18: IMPALA with V-trace, one-hot representation and merge_reward
+#
+# IMPALA decouples acting from learning using V-trace importance sampling
+# correction to handle the policy lag between actors and the learner.
+
+# Training parameters
+training:
+  total_steps: 100000           # Total training steps
+  learning_rate: 0.0006         # RMSprop learning rate
+  gamma: 0.99                   # Discount factor
+  value_loss_coef: 0.5          # Coefficient for value loss
+  entropy_coef: 0.01            # Coefficient for entropy bonus
+
+# IMPALA-specific parameters
+impala:
+  n_steps: 20                   # Steps per trajectory (longer than A2C)
+  rho_bar: 1.0                  # V-trace rho truncation (1.0 = standard)
+  c_bar: 1.0                    # V-trace c truncation
+  max_grad_norm: 40.0           # Maximum gradient norm for clipping
+
+# Network architecture
+network:
+  hidden_layers: [256, 256]     # Hidden layer sizes (shared trunk)
+  activation: relu              # Activation function
+
+# Environment
+env:
+  n_games: 32                   # Number of parallel games
+
+# Checkpointing
+checkpoint:
+  save_frequency: 10000         # Save checkpoint every N steps
+  save_dir: checkpoints/impala  # Directory for checkpoints
+
+# Logging
+logging:
+  log_frequency: 1000           # Log metrics every N steps
+  eval_frequency: 10000         # Evaluate every N steps
+  eval_games: 100               # Number of games for evaluation

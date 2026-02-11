@@ -1,0 +1,41 @@
+# MuZero-style Configuration
+# Milestone 24: Model-based planning with learned dynamics
+# Per DEC-0020: one-hot representation, merge_reward, no tuning
+
+network:
+  hidden_size: 256
+  representation_layers: [256]
+  dynamics_layers: [256]
+  prediction_layers: [256]
+
+mcts:
+  num_simulations: 50
+  c_puct: 1.5
+  dirichlet_alpha: 0.25
+  exploration_fraction: 0.25
+  temperature: 1.0
+  temperature_drop_step: 50000
+
+training:
+  total_steps: 500000
+  learning_rate: 0.001
+  gamma: 0.997
+  batch_size: 64
+  unroll_steps: 5
+  td_steps: 10
+  value_loss_weight: 0.25
+  policy_loss_weight: 1.0
+  reward_loss_weight: 1.0
+
+replay_buffer:
+  capacity: 100000
+  min_size: 1000
+
+logging:
+  log_frequency: 1000
+  eval_frequency: 10000
+  eval_games: 100
+
+checkpoint:
+  save_frequency: 50000
+  save_dir: checkpoints/muzero_style/
