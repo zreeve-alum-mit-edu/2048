@@ -1,0 +1,39 @@
+# PER DQN Configuration
+# Milestone 13: Prioritized Experience Replay
+# Per DEC-0020: one-hot representation, merge_reward, no tuning
+
+network:
+  hidden_layers: [256, 256]
+
+training:
+  total_steps: 500000
+  learning_rate: 0.0001
+  gamma: 0.99
+  batch_size: 64
+
+epsilon:
+  start: 1.0
+  end: 0.01
+  decay_steps: 100000
+
+target_network:
+  update_frequency: 1000
+
+replay_buffer:
+  capacity: 100000
+  min_size: 1000
+
+# PER-specific parameters
+per:
+  alpha: 0.6            # Prioritization exponent (0=uniform, 1=full)
+  beta_start: 0.4       # Initial importance sampling correction
+  beta_frames: 100000   # Frames to anneal beta to 1.0
+
+logging:
+  log_frequency: 1000
+  eval_frequency: 10000
+  eval_games: 100
+
+checkpoint:
+  save_frequency: 50000
+  save_dir: checkpoints/per_dqn/

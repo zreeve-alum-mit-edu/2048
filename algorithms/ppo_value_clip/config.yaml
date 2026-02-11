@@ -1,0 +1,30 @@
+# PPO+Value Clip Configuration
+# Milestone 11: PPO with value function clipping
+# Per DEC-0020: one-hot representation, merge_reward, no tuning
+
+network:
+  hidden_layers: [256, 256]
+
+training:
+  total_steps: 500000
+  learning_rate: 0.0003
+  gamma: 0.99
+  value_loss_coef: 0.5
+  entropy_coef: 0.01
+
+ppo:
+  clip_ratio: 0.2           # Policy clipping
+  value_clip_ratio: 0.2     # Value function clipping (key difference)
+  gae_lambda: 0.95
+  n_steps: 128
+  n_epochs: 4
+  n_minibatches: 4
+
+logging:
+  log_frequency: 1000
+  eval_frequency: 10000
+  eval_games: 100
+
+checkpoint:
+  save_frequency: 50000
+  save_dir: checkpoints/ppo_value_clip/
