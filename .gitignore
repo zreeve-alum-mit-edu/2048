@@ -49,3 +49,17 @@ optuna.db
 *.ckpt
 checkpoints/
 logs/
+
+# Optuna databases (generated during runs)
+data/optuna/*.db
+
+# Sweep output files (generated during runs)
+context/sweep_status.jsonl
+results/sweep_*.jsonl
+results/sweep_*.json
+
+# Observability logs (generated during runs)
+context/observability.jsonl
+
+# Debug scripts
+debug_*.py
